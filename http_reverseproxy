@@ -1,0 +1,15 @@
+// remote 是你需要代理的 endpoint 地址
+remote, err := url.Parse(host + targetHost.Host + pat)
+proxy := httputil.NewSingleHostReverseProxy(remote)
+	proxy.Director = func(req1 *http.Request) {
+		req1.URL.Scheme = remote.Scheme
+		req1.URL.Host = remote.Host
+		req1.URL.Path = pat
+		req1.URL.RawQuery = req.URL.RawQuery
+		if _, ok := req1.Header["User-Agent"]; !ok {
+			// explicitly disable User-Agent so it's not set to default value
+			req1.Header.Set("User-Agent", "")
+		}
+		log.Println("new path is ", req1.URL, req1.URL.RawQuery)
+	}
+	proxy.ServeHTTP(w, req)

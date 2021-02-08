@@ -1,0 +1,78 @@
+package routine
+
+import (
+	"context"
+	"sync"
+)
+
+const (
+	Init = iota
+	Running
+	Stopped
+)
+
+// 抽象
+type routine struct {
+	once sync.Once
+	// 执行得函数
+	f1 func(ctx context.Context)
+	// 当前状态
+	status int
+	ctx1   context.Context
+	cancel context.CancelFunc
+}
+
+func New(f1 func(ctx context.Context)) *routine {
+	ret := &routine{
+		once:   sync.Once{},
+		status: Init,
+	}
+	ctx := context.Background()
+	ctx1, cancel := context.WithCancel(ctx)
+	ret.ctx1 = ctx1
+	ret.cancel = cancel
+	ret.f1 = f1
+	return ret
+}
+
+// 开始
+func (r *routine) Start() {
+	if r.status == Init {
+		defer func() {
+			r.status = Running
+		}()
+		go r.once.Do(func() {
+			r.f1(r.ctx1)
+		})
+	}
+}
+
+// 关闭
+func (r *routine) Stop() {
+	r.cancel()
+	r.status = Stopped
+}
+
+// 是否关闭
+func (r *routine) IsStopped() bool {
+	if r.status == Stopped {
+		return true
+	}
+	return false
+}
+
+// test
+//rt := routine.New(func(ctx context.Context) {
+	//	ticker := time.NewTicker(10 * time.Second)
+	//	for ctx.Err() == nil {
+	//		select {
+	//		case <-ctx.Done():
+	//			log.Println("我停止了")
+	//			return
+	//		case <- ticker.C:
+	//			log.Println("hhhhhhh")
+	//		}
+	//	}
+	//	log.Println("ctx 错了,要退出咯")
+	//})
+	//rt.Start()
